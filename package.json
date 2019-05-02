@@ -10,8 +10,11 @@
     "watch": "nodemon --exec babel-node src/index.js",
     "build": "./node_modules/.bin/babel ./src --out-dir ./dist --ignore node_modules",
     "prettier": "prettier --config ./.prettierrc --write \"src/**/**/*.js\"",
-    "test": "./node_modules/.bin/mocha --compilers js:@babel/register",
+    "test": "jest",
     "lint": "eslint ./src",
+    "lint:fix": "eslint ./src --fix",
+    "create:logs": "node ./scripts/logs.js",
+    "postinstall": "npm run create:logs",
     "heroku-postbuild": "rm -rf ./dist && npm run build"
   },
   "repository": {

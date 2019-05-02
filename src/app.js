@@ -3,12 +3,14 @@ import bodyParser from 'body-parser';
 import morganLogger from 'morgan';
 import cors from 'cors';
 import path from 'path';
-import expressValidator from "express-validator";
+import expressValidator from 'express-validator';
 import config from './config';
 import AppError from './handlers/AppError';
+import logger from './util/logger';
 
 // routers
 import authRouter from './routes/auth';
+import userRouter from './routes/user';
 
 const app = express();
 
@@ -24,12 +26,13 @@ app.use(
     }),
 );
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.static(path.join(__dirname, '../public')));
 app.use(expressValidator());
 
 //routes
 app.get('/', (req, res) => res.send('Node Starter files!'));
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/users', userRouter);
 
 // Handle favicon requests from browsers
 app.get('/favicon.ico', (req, res) => res.sendStatus(204));
@@ -41,20 +44,20 @@ app.use('*', (req, res, next) => {
 
 // Error handlers
 app.use((err, req, res, next) => {
-    if ('development' != config.env) {
+    if ('development' !== config.env) {
         return next(err);
     }
 
-    console.log(
+    logger.error(
         `${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method} - ${
-        req.ip
-      } - Stack: ${err.stack}`
+            req.ip
+        } - Stack: ${err.stack}`
     );
     err.stack = err.stack || '';
     let errorDetails = {
         status: 'error',
         message: err.message,
-        statusCode: err.statusCode || 500,
+        code: err.statusCode || 500,
         stack: err.stack,
     };
 
@@ -64,7 +67,7 @@ app.use((err, req, res, next) => {
     return res.json(errorDetails);
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     if (!err.isOperational) {
         console.log(
             'An unexpected error occurred please restart the application!',
@@ -72,16 +75,16 @@ app.use((err, req, res, next) => {
         );
     }
 
-    console.log(
+    logger.error(
         `${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method} - ${
-        req.ip
-      } - Stack: ${err.stack}`
+            req.ip
+        } - Stack: ${err.stack}`
     );
     err.stack = err.stack || '';
     let errorDetails = {
         status: 'error',
         message: err.message,
-        statusCode: err.statusCode || 500,
+        code: err.statusCode || 500,
     };
 
     console.log(errorDetails);
@@ -90,18 +93,13 @@ app.use((err, req, res, next) => {
     return res.json(errorDetails);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
     throw reason;
 });
 
 process.on('uncaughtException', (error) => {
-    console.log(`Uncaught Exception: ${500} - ${error.message}, Stack: ${error.stack}`);
-    // process.exit(1);
-});
-
-process.on('SIGINT', () => {
-    console.log(' Alright! Bye!');
-    process.exit();
+    logger.error(`Uncaught Exception: ${500} - ${error.message}, Stack: ${error.stack}`);
+    process.kill(process.pid, 'SIGTERM');
 });
 
 export default app;
